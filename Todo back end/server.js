@@ -1,8 +1,29 @@
 const fs = require('fs');
+let mysql = require('mysql');
+
+let connection = mysql.createConnection({
+  host: 'localhost',
+  user: 'root',
+  password: 'password',
+  database: 'todoapp'
+});
+
+connection.connect(function(err) {
+  if (err) {
+    return console.error('error: ' + err.message);
+  }
+
+  console.log('Connected to the MySQL server.');
+
+});
+
+
 const express = require('express');
 const app = express();
+
 var cors = require('cors')
 app.use(cors({origin:true}))
+
 const bodyParser = require('body-parser');
 app.use(bodyParser.urlencoded({
     extended: true
@@ -24,7 +45,14 @@ app.post('/todo/add', (req, res) => {
     res.send(itemlist);
     console.log(itemlist);
     fs.writeFileSync("itemlist.json",JSON.stringify(itemlist));
-});
+
+      
+      connection.query("INSERT INTO `Items` (Itemname) VALUES (?)",newTodo.toString(), 
+      function (err, result) {
+        if (err) throw err;
+        console.log("Item",newTodo.toString());
+      });
+    });
 
 app.delete('/todo/remove',(req,res) => {
  
@@ -36,7 +64,16 @@ app.delete('/todo/remove',(req,res) => {
   res.send(removedlist);
   console.log(removedlist);
   fs.writeFileSync("itemlist.json",JSON.stringify(removedlist));
-})
+  
+  connection.query(" DELETE FROM `Items` WHERE Itemname = ?",[itemtoremove], 
+      function (err, result) {
+        if (err) throw err;
+        console.log(itemtoremove," is removedd");
+      });
+    });
+
+
+
 
 app.put('/todo/update',(req,res) => {
 
@@ -44,18 +81,19 @@ app.put('/todo/update',(req,res) => {
     console.log(itemstoupdate);
     var updateitem = itemstoupdate.updateitemwith;
     console.log(updateitem);
-    // var updateprice = itemstoupdate.updatepricewith; 
-    // console.log(updateprice);
-    // var item = itemstoupdate.item;
     let index = itemlist.findIndex( (x) => x === itemstoupdate.item);
     console.log(index);
     itemlist[index] = updateitem;
-    // itemlist[index].price = updateprice;
     res.send(itemlist);
     fs.writeFileSync("itemlist.json",JSON.stringify(itemlist));
-})
+    connection.query(`UPDATE Items SET Itemname = "${updateitem}" WHERE Itemname = "${itemstoupdate.item}"`, 
+    function (err, result) {
+      if (err) throw err;
+      console.log(itemstoupdate.item," is updated");
+    });
+  });
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 8090;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}.`);
 })
